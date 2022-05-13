@@ -1,3 +1,5 @@
+// noinspection JSCheckFunctionSignatures
+
 import { io } from "socket.io-client";
 
 const sdkKey = "41W6e8Z6JgB87DKE8Ych8";
