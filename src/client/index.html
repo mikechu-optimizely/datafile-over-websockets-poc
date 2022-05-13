@@ -1,10 +1,43 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <title>Datafile Over Websockets POC</title>
+  <meta charset="UTF-8">
+  <script src="client.js" type="module"></script>
+  <style>
+    body {
+      font-family: "Arial", serif;
+    }
+
+    div {
+      margin: 10px 0;
+    }
+
+    .label {
+      font-weight: bold;
+    }
+
+    .datafile-container {
+      overflow-scrolling: auto;
+      border: 1px dashed green;
+    }
+
+    #datafile-content {
+      min-height: 500px;
+      font-family: "Courier New", monospace;
+    }
+  </style>
+  <title>Datafile Over Websockets POC</title>
 </head>
 <body>
-
+  <div>
+    <span class="label">Socket</span> <span id="socket-id"></span>
+  </div>
+  <div>
+    <span class="label">Payload Size</span> <span id="payload-size"></span>
+  </div>
+  <div class="label">Datafile Content</div>
+  <div class="datafile-container">
+    <div id="datafile-content"></div>
+  </div>
 </body>
 </html>
