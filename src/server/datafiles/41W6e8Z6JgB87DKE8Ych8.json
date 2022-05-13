@@ -1,5 +1,7 @@
 {
-  "groups": [],
+  "groups": [
+    5
+  ],
   "environmentKey": "development",
   "rollouts": [
     {
