@@ -2,8 +2,7 @@
 
 import { io } from "socket.io-client";
 
-const serverPort = 8000;
-
+// UI Elements
 const sdkKeyField = document.getElementById("sdk-key")
 const socketIdDisplay = document.getElementById("socket-id");
 const payloadSizeDisplay = document.getElementById("payload-size");
@@ -13,7 +12,8 @@ const dataFileContentDisplay = document.getElementById("datafile-content");
 let sdkKey = "41W6e8Z6JgB87DKE8Ych8";
 let socketId;
 
-const socket = io(`http://localhost:${serverPort}`);
+// Socket
+const socket = io("http://localhost:8000");
 socket.on("connect", () => {
     socketId = socket.id
     socketIdDisplay.textContent = socketId;
@@ -30,6 +30,7 @@ socket.on("datafile-push", dataFile => {
     updateJsonDisplay(dataFile);
 });
 
+// Event Listeners
 document.addEventListener("readystatechange", () => {
     sdkKeyField.value = sdkKey;
     socketIdDisplay.textContent = "{display socket id}";
@@ -42,7 +43,7 @@ manualPullButton.addEventListener("click", e => {
 });
 sdkKeyField.addEventListener("change", e => {
     console.log("Ignoring SDK", sdkKey);
-    socket.emit("ignoring-sdk-key", sdkKey);
+    socket.emit("unsubscribe-from-sdk-key", sdkKey);
 
     sdkKey = e.target.value;
 
@@ -53,6 +54,7 @@ sdkKeyField.addEventListener("change", e => {
     socket.emit("datafile-pull", sdkKey, socketId);
 })
 
+// Utility
 const updatePayloadSize = obj => {
     const bytes = getSizeInBytes(obj);
     const kb = (bytes / 1000).toFixed(2);
