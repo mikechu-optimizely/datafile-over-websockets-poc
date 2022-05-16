@@ -1,14 +1,11 @@
 const serverPort = 8000;
 const clientPort = 8080;
 
-const fs = require('fs');
-const readDataFileFromDisk = (sdkKey) => {
-    return JSON.parse(fs.readFileSync(`./datafiles/${sdkKey}.json`).toString());
-};
-
-const sendDataFile = (obj) => {
-    console.log("Datafile Sent");
-    socket.emit("datafile-push", obj);
+const isNullOrWhitespace = input => {
+    if (typeof input === 'undefined' || input == null) {
+        return true;
+    }
+    return input.replace(/\s/ig, '').length < 1;
 };
 
 let socket = {};
@@ -18,12 +15,37 @@ const io = require("socket.io")(serverPort, {
         origin: [`http://localhost:${clientPort}`],
     },
 });
+
+const fs = require('fs');
+const readDataFileFromDisk = sdkKey => {
+    console.log("Reading datafile from disk", sdkKey);
+    return JSON.parse(fs.readFileSync(`./datafiles/${sdkKey}.json`).toString());
+};
+
+const sendDataFile = (dataFile, toClientId, toAllClientsWithSdkKey) => {
+    if (toClientId) {
+        console.log("Datafile Sent *Specific* client", toClientId);
+        io.to(toClientId).emit("datafile-push", dataFile);
+    }
+    if (toAllClientsWithSdkKey) {
+        console.log("Datafile Sent *All* clients with SDK Key", toAllClientsWithSdkKey);
+        io.to(toAllClientsWithSdkKey).emit("datafile-push", dataFile);
+    }
+};
+
 io.on("connection", s => {
     socket = s;
-    console.log(socket.id);
-    socket.on("datafile-pull", sdkKey => {
+    console.log("Socket Connected (default room)", socket.id);
+    socket.on("join-room", sdkKey => {
+        console.log("Subscribed to", sdkKey);
+        socket.join(sdkKey);
+    });
+    socket.on("datafile-pull", (sdkKey, socketId) => {
         console.log("Datafile Requested", sdkKey);
-        sendDataFile(readDataFileFromDisk(sdkKey));
+        if (isNullOrWhitespace(sdkKey)) {
+            return;
+        }
+        sendDataFile(readDataFileFromDisk(sdkKey), socketId, null);
     });
 });
 
@@ -31,7 +53,9 @@ const watch = require("node-watch");
 let watcher = watch("./datafiles/", {filter: /\.json$/});
 watcher.on("change", (event, name) => {
     const removalPattern = /\.json|datafiles|\/|\\/ig;
-
     const sdkKey = name.replace(removalPattern, "");
-    sendDataFile(readDataFileFromDisk(sdkKey));
+    if (isNullOrWhitespace(name) || sdkKey.includes(".")) {
+        return;
+    }
+    sendDataFile(readDataFileFromDisk(sdkKey), null, sdkKey);
 });

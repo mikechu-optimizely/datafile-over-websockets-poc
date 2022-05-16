@@ -5,44 +5,52 @@ import { io } from "socket.io-client";
 const sdkKey = "41W6e8Z6JgB87DKE8Ych8";
 const serverPort = 8000;
 
-const socketId = document.getElementById("socket-id");
-const payloadSize = document.getElementById("payload-size");
-const manualPull = document.getElementById("manual-pull");
-const dataFileContent = document.getElementById("datafile-content");
+const socketIdDisplay = document.getElementById("socket-id");
+const payloadSizeDisplay = document.getElementById("payload-size");
+const manualPullButton = document.getElementById("manual-pull");
+const dataFileContentDisplay = document.getElementById("datafile-content");
+
+let socketId;
 
 const socket = io(`http://localhost:${serverPort}`);
 socket.on("connect", () => {
-    socketId.textContent = socket.id;
-    socket.emit("datafile-pull", sdkKey);
+    socketId = socket.id
+    socketIdDisplay.textContent = socketId;
+
+    console.log("Subscribing to", sdkKey);
+    socket.emit("join-room", sdkKey);
+
+    console.log("Requesting datafile for", sdkKey);
+    socket.emit("datafile-pull", sdkKey, socketId);
 });
-socket.on("datafile-push", obj => {
-    console.log("Datafile Received", obj);
-    updatePayloadSize(obj);
-    updateJsonDisplay(obj);
+socket.on("datafile-push", dataFile => {
+    console.log("Datafile Received", dataFile);
+    updatePayloadSize(dataFile);
+    updateJsonDisplay(dataFile);
 });
 
 document.addEventListener("readystatechange", () => {
-    socketId.textContent = "{display socket id}";
-    payloadSize.textContent = "{measure and fill json size in KB}";
-    dataFileContent.textContent = "{fill json}";
+    socketIdDisplay.textContent = "{display socket id}";
+    payloadSizeDisplay.textContent = "{measure and fill json size in KB}";
+    dataFileContentDisplay.textContent = "{fill json}";
 });
 
-manualPull.addEventListener("click", e => {
+manualPullButton.addEventListener("click", e => {
     e.preventDefault();
-    socket.emit("datafile-pull", sdkKey);
+    socket.emit("datafile-pull", sdkKey, socketId);
 });
 
 const updatePayloadSize = obj => {
     const bytes = getSizeInBytes(obj);
     const kb = (bytes / 1000).toFixed(2);
 
-    payloadSize.textContent = `${kb} KB`;
+    payloadSizeDisplay.textContent = `${kb} KB`;
 };
 
 const updateJsonDisplay = obj => {
     const cleaned = JSON.stringify(obj, null, 2);
 
-    dataFileContent.textContent = cleaned.replace(/^[\t ]*"[^:\n\r]+(?<!\\)":/gm, function (match) {
+    dataFileContentDisplay.textContent = cleaned.replace(/^[\t ]*"[^:\n\r]+(?<!\\)":/gm, function (match) {
         return match.replace(/"/g, "");
     });
 };
