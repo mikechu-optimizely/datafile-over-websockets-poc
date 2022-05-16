@@ -1,5 +1,5 @@
 {
-  "groups": [ 66, 35, 23 ],
+  "groups": [ 66, 35, 23, 51, 61 ],
   "environmentKey": "production",
   "rollouts": [
     {

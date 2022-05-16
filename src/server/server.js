@@ -36,9 +36,13 @@ const sendDataFile = (dataFile, toClientId, toAllClientsWithSdkKey) => {
 io.on("connection", s => {
     socket = s;
     console.log("Socket Connected (default room)", socket.id);
-    socket.on("join-room", sdkKey => {
+    socket.on("subscribe-to-sdk-key", sdkKey => {
         console.log("Subscribed to", sdkKey);
         socket.join(sdkKey);
+    });
+    socket.on("ignoring-sdk-key", sdkKey => {
+        console.log("Unsubscribed from", sdkKey);
+        socket.leave(sdkKey);
     });
     socket.on("datafile-pull", (sdkKey, socketId) => {
         console.log("Datafile Requested", sdkKey);
