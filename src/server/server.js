@@ -19,7 +19,15 @@ const io = require("socket.io")(serverPort, {
 const fs = require('fs');
 const readDataFileFromDisk = sdkKey => {
     console.log("Reading datafile from disk", sdkKey);
-    return JSON.parse(fs.readFileSync(`./datafiles/${sdkKey}.json`).toString());
+    const path = `./datafiles/${sdkKey}.json`;
+    if (!fs.existsSync(path)) {
+        return;
+    }
+    const buffer = fs.readFileSync(path);
+    if (!buffer) {
+        return;
+    }
+    return JSON.parse(buffer.toString());
 };
 
 const sendDataFile = (dataFile, toClientId, toAllClientsWithSdkKey) => {
@@ -49,7 +57,11 @@ io.on("connection", s => {
         if (isNullOrWhitespace(sdkKey)) {
             return;
         }
-        sendDataFile(readDataFileFromDisk(sdkKey), socketId, null);
+        const dataFile =readDataFileFromDisk(sdkKey);
+        if (!dataFile) {
+            return;
+        }
+        sendDataFile(dataFile, socketId, null);
     });
 });
 

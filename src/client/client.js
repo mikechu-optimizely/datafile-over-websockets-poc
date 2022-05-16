@@ -36,12 +36,10 @@ document.addEventListener("readystatechange", () => {
     payloadSizeDisplay.textContent = "{measure and fill json size in KB}";
     dataFileContentDisplay.textContent = "{fill json}";
 });
-
 manualPullButton.addEventListener("click", e => {
     e.preventDefault();
     socket.emit("datafile-pull", sdkKey, socketId);
 });
-
 sdkKeyField.addEventListener("change", e => {
     console.log("Ignoring SDK", sdkKey);
     socket.emit("ignoring-sdk-key", sdkKey);
@@ -61,7 +59,6 @@ const updatePayloadSize = obj => {
 
     payloadSizeDisplay.textContent = `${kb} KB`;
 };
-
 const updateJsonDisplay = obj => {
     const cleaned = JSON.stringify(obj, null, 2);
 
@@ -69,7 +66,6 @@ const updateJsonDisplay = obj => {
         return match.replace(/"/g, "");
     });
 };
-
 const getSizeInBytes = obj => {
     let str;
     if (typeof obj === 'string') {
