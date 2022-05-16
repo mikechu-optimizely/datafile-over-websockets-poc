@@ -11,6 +11,5 @@
 ### Client Side
 
 1. Open a second terminal window to the `src/client/` directory.
-2. Run `npm  install`\
-3. After completion, run `npm start`
-
+2. Run `npm  install`.
+3. After completion, run `npm start`.
