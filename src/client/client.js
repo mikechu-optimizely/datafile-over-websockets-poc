@@ -3,7 +3,7 @@
 import { io } from "socket.io-client";
 
 // UI Elements
-const sdkKeyField = document.getElementById("sdk-key")
+const sdkKeyField = document.getElementById("sdk-key");
 const socketIdDisplay = document.getElementById("socket-id");
 const payloadSizeDisplay = document.getElementById("payload-size");
 const manualPullButton = document.getElementById("manual-pull");
@@ -12,10 +12,32 @@ const dataFileContentDisplay = document.getElementById("datafile-content");
 let sdkKey = "41W6e8Z6JgB87DKE8Ych8";
 let socketId;
 
+// Event Listeners
+document.addEventListener("readystatechange", () => {
+    sdkKeyField.value = sdkKey;
+    sdkKeyField.addEventListener("change", e => {
+        console.log("Ignoring SDK", sdkKey);
+        socket.emit("unsubscribe-from-sdk-key", sdkKey);
+
+        sdkKey = e.target.value;
+
+        console.log("Subscribing to", sdkKey);
+        socket.emit("subscribe-to-sdk-key", sdkKey);
+
+        console.log("Requesting datafile for", sdkKey);
+        socket.emit("datafile-pull", sdkKey, socketId);
+    });
+
+    manualPullButton.addEventListener("click", e => {
+        e.preventDefault();
+        socket.emit("datafile-pull", sdkKey, socketId);
+    });
+});
+
 // Socket
 const socket = io("http://localhost:8000");
 socket.on("connect", () => {
-    socketId = socket.id
+    socketId = socket.id;
     socketIdDisplay.textContent = socketId;
 
     console.log("Subscribing to", sdkKey);
@@ -29,30 +51,6 @@ socket.on("datafile-push", dataFile => {
     updatePayloadSize(dataFile);
     updateJsonDisplay(dataFile);
 });
-
-// Event Listeners
-document.addEventListener("readystatechange", () => {
-    sdkKeyField.value = sdkKey;
-    socketIdDisplay.textContent = "{display socket id}";
-    payloadSizeDisplay.textContent = "{measure and fill json size in KB}";
-    dataFileContentDisplay.textContent = "{fill json}";
-});
-manualPullButton.addEventListener("click", e => {
-    e.preventDefault();
-    socket.emit("datafile-pull", sdkKey, socketId);
-});
-sdkKeyField.addEventListener("change", e => {
-    console.log("Ignoring SDK", sdkKey);
-    socket.emit("unsubscribe-from-sdk-key", sdkKey);
-
-    sdkKey = e.target.value;
-
-    console.log("Subscribing to", sdkKey);
-    socket.emit("subscribe-to-sdk-key", sdkKey);
-
-    console.log("Requesting datafile for", sdkKey);
-    socket.emit("datafile-pull", sdkKey, socketId);
-})
 
 // Utility
 const updatePayloadSize = obj => {

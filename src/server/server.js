@@ -1,6 +1,6 @@
 
 // Socket
-let socket = {};
+let socket;
 // noinspection JSValidateTypes
 const io = require("socket.io")(8000, {
     cors: {
