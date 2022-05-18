@@ -18,16 +18,16 @@ httpServer.listen(8000);
 io.on("connection", s => {
     socket = s;
     console.log("Socket Connected (default room)", socket.id);
-    socket.on("subscribe-to-sdk-key", sdkKey => {
-        console.log("Subscribed to", sdkKey);
+    socket.on("subscribe-to-sdk-key", (sdkKey, socketId) => {
+        console.log(`Client ${socketId} subscribed to SDK key ${sdkKey}`);
         socket.join(sdkKey);
     });
-    socket.on("unsubscribe-from-sdk-key", sdkKey => {
-        console.log("Unsubscribed from", sdkKey);
+    socket.on("unsubscribe-from-sdk-key", (sdkKey, socketId) => {
+        console.log(`Client ${socketId} unsubscribed from SDK key ${sdkKey}`);
         socket.leave(sdkKey);
     });
     socket.on("datafile-pull", async (sdkKey, socketId) => {
-        console.log("Datafile Requested", sdkKey);
+        console.log(`Datafile requested for SDK Key ${sdkKey} by client ${socketId}`);
         if (isNullOrWhitespace(sdkKey)) {
             return;
         }
@@ -44,11 +44,11 @@ const sendDataFile = (dataFileObject, toClientId, toAllClientsWithSdkKey) => {
         return;
     }
     if (toClientId) {
-        console.log("Datafile Sent *Specific* client", toClientId);
+        console.log("Datafile sent to *Specific* client", toClientId);
         io.to(toClientId).emit("datafile-push", dataFileObject);
     }
     if (toAllClientsWithSdkKey) {
-        console.log("Datafile Sent *All* clients with SDK Key", toAllClientsWithSdkKey);
+        console.log("Datafile sent to *All* clients with SDK key", toAllClientsWithSdkKey);
         io.to(toAllClientsWithSdkKey).emit("datafile-push", dataFileObject);
     }
 };
@@ -68,6 +68,7 @@ const readDataFileObjectFromDisk = async filePath => {
     }
     return JSON.parse(buffer.toString());
 };
+
 const readPreviousDataFileObjectFromDisk = async globSearch => {
     console.log("Reading previous datafile from disk", globSearch);
     //const files = await glob(`**/datafile*${globSearch}*.json`);
@@ -85,7 +86,11 @@ const readPreviousDataFileObjectFromDisk = async globSearch => {
     }
     return JSON.parse(buffer.toString());
 };
-let watcher = watch("./datafiles/", {filter: /\.json$/});
+
+let watcher = watch("./datafiles/", {
+    filter: /\.json$/,
+    recursive: false,
+});
 watcher.on("change", async (event, filePath) => {
     const sdkKey = extractSdkKey(filePath);
     const dataFileObject = await readDataFileObjectFromDisk(filePath);

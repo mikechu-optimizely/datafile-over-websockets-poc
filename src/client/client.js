@@ -17,7 +17,7 @@ document.addEventListener("readystatechange", () => {
     sdkKeyField.value = sdkKey;
     sdkKeyField.addEventListener("change", e => {
         console.log("Ignoring SDK", sdkKey);
-        socket.emit("unsubscribe-from-sdk-key", sdkKey);
+        socket.emit("unsubscribe-from-sdk-key", sdkKey, socketId);
 
         sdkKey = e.target.value;
 
@@ -41,7 +41,7 @@ socket.on("connect", () => {
     socketIdDisplay.textContent = socketId;
 
     console.log("Subscribing to", sdkKey);
-    socket.emit("subscribe-to-sdk-key", sdkKey);
+    socket.emit("subscribe-to-sdk-key", sdkKey, socketId);
 
     console.log("Requesting datafile for", sdkKey);
     socket.emit("datafile-pull", sdkKey, socketId);
