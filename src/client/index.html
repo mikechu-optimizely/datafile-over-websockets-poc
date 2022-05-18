@@ -15,16 +15,6 @@
     .label {
       font-weight: bold;
     }
-
-    .datafile-container {
-      overflow-scrolling: auto;
-      border: 1px dashed green;
-    }
-
-    #datafile-content {
-      min-height: 500px;
-      font-family: "Courier New", monospace;
-    }
   </style>
   <title>Datafile Over Websockets POC</title>
 </head>
@@ -39,12 +29,6 @@
   <div>
     <span class="label">Payload Size</span> <span id="payload-size"></span>
   </div>
-  <div class="label">
-    <button id="manual-pull" value="datafile-pull">Manually Pull</button>
-    Datafile Content
-  </div>
-  <div class="datafile-container">
-    <div id="datafile-content"></div>
-  </div>
+  <button id="manual-pull" value="datafile-pull">Manually Pull Data File</button>
 </body>
 </html>
