@@ -3,6 +3,7 @@ import glob from "glob-promise";
 import { createServer } from "http";
 import { Server } from "socket.io";
 import watch from "node-watch";
+import diff from "deep-diff";
 
 const httpServer = createServer();
 
@@ -36,20 +37,21 @@ io.on("connection", s => {
         if (!dataFile) {
             return;
         }
-        sendDataFile(dataFile, socketId, null);
+        sendDataFileOrPatch(dataFile, socketId, null);
     });
 });
-const sendDataFile = (dataFileObject, toClientId, toAllClientsWithSdkKey) => {
+const sendDataFileOrPatch = (dataFileObject, toClientId, toAllClientsWithSdkKey) => {
     if (!dataFileObject) {
         return;
     }
+    const emitEvent = Array.isArray(dataFileObject) ? "datafile-diff-push" : "datafile-full-push";
     if (toClientId) {
         console.log("Datafile sent to *Specific* client", toClientId);
-        io.to(toClientId).emit("datafile-push", dataFileObject);
+        io.to(toClientId).emit(emitEvent, dataFileObject);
     }
     if (toAllClientsWithSdkKey) {
         console.log("Datafile sent to *All* clients with SDK key", toAllClientsWithSdkKey);
-        io.to(toAllClientsWithSdkKey).emit("datafile-push", dataFileObject);
+        io.to(toAllClientsWithSdkKey).emit(emitEvent, dataFileObject);
     }
 };
 
@@ -71,16 +73,19 @@ const readDataFileObjectFromDisk = async filePath => {
 
 const readPreviousDataFileObjectFromDisk = async globSearch => {
     console.log("Reading previous datafile from disk", globSearch);
-    //const files = await glob(`**/datafile*${globSearch}*.json`);
     const files = await glob(globSearch);
 
+    let latestFile;
     let latestFileStats;
     for (const file of files) {
         const stats = await fs.stat(file);
-        latestFileStats = latestFileStats?.mtime >= stats.mtime ? latestFileStats : stats;
+        if (typeof latestFileStats === "undefined" || latestFileStats?.mtime < stats.mtime) {
+            latestFile = file;
+            latestFileStats = stats;
+        }
     }
 
-    const buffer = await fs.readFile(latestFileStats.path);
+    const buffer = await fs.readFile(latestFile);
     if (buffer.length < 0) {
         return;
     }
@@ -93,8 +98,15 @@ let watcher = watch("./datafiles/", {
 });
 watcher.on("change", async (event, filePath) => {
     const sdkKey = extractSdkKey(filePath);
-    const dataFileObject = await readDataFileObjectFromDisk(filePath);
-    sendDataFile(dataFileObject, null, sdkKey);
+
+    const newDataFile = await readDataFileObjectFromDisk(filePath);
+
+    const globSearch = `./datafiles/versions/*${sdkKey}*.json`;
+    const previousDataFile = await readPreviousDataFileObjectFromDisk(globSearch);
+
+    const dataFilePatch = getPatch(newDataFile, previousDataFile);
+
+    sendDataFileOrPatch(dataFilePatch, null, sdkKey);
 });
 
 // Utility
@@ -111,4 +123,7 @@ const extractSdkKey = filePath => {
         return "";
     }
     return sdkKey;
+};
+const getPatch = (newDataFileObject, previousDataFileObject) => {
+    return diff.diff(previousDataFileObject, newDataFileObject);
 };
