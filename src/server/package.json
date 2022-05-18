@@ -3,6 +3,7 @@
   "version": "1.0.0",
   "description": "",
   "main": "server.js",
+  "type": "module",
   "scripts": {
     "start": "nodemon server.js"
   },
@@ -12,6 +13,8 @@
     "nodemon": "^2.0.16"
   },
   "dependencies": {
+    "deep-diff": "^1.0.2",
+    "glob-promise": "^4.2.2",
     "node-watch": "^0.7.3",
     "socket.io": "^4.5.0"
   }

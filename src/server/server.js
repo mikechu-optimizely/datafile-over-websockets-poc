@@ -1,12 +1,20 @@
+import fs from "node:fs/promises";
+import glob from "glob-promise";
+import { createServer } from "http";
+import { Server } from "socket.io";
+import watch from "node-watch";
+
+const httpServer = createServer();
 
 // Socket
 let socket;
 // noinspection JSValidateTypes
-const io = require("socket.io")(8000, {
+const io = new Server(httpServer, {
     cors: {
         origin: ["http://localhost:8080"],
     },
 });
+httpServer.listen(8000);
 io.on("connection", s => {
     socket = s;
     console.log("Socket Connected (default room)", socket.id);
@@ -18,52 +26,70 @@ io.on("connection", s => {
         console.log("Unsubscribed from", sdkKey);
         socket.leave(sdkKey);
     });
-    socket.on("datafile-pull", (sdkKey, socketId) => {
+    socket.on("datafile-pull", async (sdkKey, socketId) => {
         console.log("Datafile Requested", sdkKey);
         if (isNullOrWhitespace(sdkKey)) {
             return;
         }
-        const dataFile =readDataFileFromDisk(sdkKey);
+        const filePath = `./datafiles/${sdkKey}.json`;
+        const dataFile = await readDataFileObjectFromDisk(filePath);
         if (!dataFile) {
             return;
         }
         sendDataFile(dataFile, socketId, null);
     });
 });
-const sendDataFile = (dataFile, toClientId, toAllClientsWithSdkKey) => {
+const sendDataFile = (dataFileObject, toClientId, toAllClientsWithSdkKey) => {
+    if (!dataFileObject) {
+        return;
+    }
     if (toClientId) {
         console.log("Datafile Sent *Specific* client", toClientId);
-        io.to(toClientId).emit("datafile-push", dataFile);
+        io.to(toClientId).emit("datafile-push", dataFileObject);
     }
     if (toAllClientsWithSdkKey) {
         console.log("Datafile Sent *All* clients with SDK Key", toAllClientsWithSdkKey);
-        io.to(toAllClientsWithSdkKey).emit("datafile-push", dataFile);
+        io.to(toAllClientsWithSdkKey).emit("datafile-push", dataFileObject);
     }
 };
 
 // File Handling
-const fs = require('fs');
-const readDataFileFromDisk = sdkKey => {
-    console.log("Reading datafile from disk", sdkKey);
-    const path = `./datafiles/${sdkKey}.json`;
-    if (!fs.existsSync(path)) {
+const readDataFileObjectFromDisk = async filePath => {
+    let buffer;
+    try {
+        buffer = await fs.readFile(filePath);
+    } catch (e) {
+        console.log(e);
         return;
     }
-    const buffer = fs.readFileSync(path);
-    if (!buffer) {
+
+    if (buffer.length < 0) {
         return;
     }
     return JSON.parse(buffer.toString());
 };
-const watch = require("node-watch");
-let watcher = watch("./datafiles/", {filter: /\.json$/});
-watcher.on("change", (event, name) => {
-    const removalPattern = /\.json|datafiles|\/|\\/ig;
-    const sdkKey = name.replace(removalPattern, "");
-    if (isNullOrWhitespace(name) || sdkKey.includes(".")) {
+const readPreviousDataFileObjectFromDisk = async globSearch => {
+    console.log("Reading previous datafile from disk", globSearch);
+    //const files = await glob(`**/datafile*${globSearch}*.json`);
+    const files = await glob(globSearch);
+
+    let latestFileStats;
+    for (const file of files) {
+        const stats = await fs.stat(file);
+        latestFileStats = latestFileStats?.mtime >= stats.mtime ? latestFileStats : stats;
+    }
+
+    const buffer = await fs.readFile(latestFileStats.path);
+    if (buffer.length < 0) {
         return;
     }
-    sendDataFile(readDataFileFromDisk(sdkKey), null, sdkKey);
+    return JSON.parse(buffer.toString());
+};
+let watcher = watch("./datafiles/", {filter: /\.json$/});
+watcher.on("change", async (event, filePath) => {
+    const sdkKey = extractSdkKey(filePath);
+    const dataFileObject = await readDataFileObjectFromDisk(filePath);
+    sendDataFile(dataFileObject, null, sdkKey);
 });
 
 // Utility
@@ -72,4 +98,12 @@ const isNullOrWhitespace = input => {
         return true;
     }
     return input.replace(/\s/ig, '').length < 1;
+};
+const extractSdkKey = filePath => {
+    const removalPattern = /\.json|datafiles|\/|\\/ig;
+    const sdkKey = filePath.replace(removalPattern, "");
+    if (isNullOrWhitespace(filePath) || sdkKey.includes(".")) {
+        return "";
+    }
+    return sdkKey;
 };
