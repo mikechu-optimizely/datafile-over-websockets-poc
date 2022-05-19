@@ -31,7 +31,7 @@ document.addEventListener("readystatechange", () => {
 
     manualPullButton.addEventListener("click", e => {
         e.preventDefault();
-        socket.emit("datafile-pull", sdkKey, socketId);
+        socket.emit("datafile-full-pull", sdkKey, socketId);
     });
 });
 
@@ -45,7 +45,7 @@ socket.on("connect", () => {
     socket.emit("subscribe-to-sdk-key", sdkKey, socketId);
 
     console.log("Requesting datafile for", sdkKey);
-    socket.emit("datafile-pull", sdkKey, socketId);
+    socket.emit("datafile-full-pull", sdkKey, socketId);
 });
 socket.on("datafile-full-push", fullDataFile => {
     console.log("Full data file received", fullDataFile);
@@ -56,10 +56,19 @@ socket.on("datafile-diff-push", dataFileDiffs => {
     console.log("Diff data file received", dataFileDiffs);
     updatePayloadSize(dataFileDiffs);
 
+    const previousRevisionChange = dataFileDiffs.find(change => change.path.includes("revision"));
+    const previousRevisionNumber = previousRevisionChange?.lhs ?? 0;
+
+    if (previousRevisionNumber !== dataFile.revision) {
+        console.log(`Data file revision mismatch. Received ${previousRevisionNumber}. Expected ${dataFile.revision} Requesting full.`);
+        socket.emit("datafile-full-pull", sdkKey, socketId);
+        return;
+    }
+
     dataFileDiffs.forEach(change => {
         diff.applyChange(dataFile, null, change);
     });
-    console.log("Data file change state", dataFile)
+    console.log("Data file change state", dataFile);
 });
 
 // Utility

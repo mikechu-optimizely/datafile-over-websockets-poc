@@ -27,7 +27,7 @@ io.on("connection", s => {
         console.log(`Client ${socketId} unsubscribed from SDK key ${sdkKey}`);
         socket.leave(sdkKey);
     });
-    socket.on("datafile-pull", async (sdkKey, socketId) => {
+    socket.on("datafile-full-pull", async (sdkKey, socketId) => {
         console.log(`Datafile requested for SDK Key ${sdkKey} by client ${socketId}`);
         if (isNullOrWhitespace(sdkKey)) {
             return;
